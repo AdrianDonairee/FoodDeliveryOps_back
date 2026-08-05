@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fooddeliveryops
+    username: foodops
+    password: foodops
+  jpa:
+    hibernate:
+      ddl-auto: update
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:FoodDeliveryOps_ChangeThisSecret_AtLeast32Chars}
+    access-token-minutes: 30
+    refresh-token-days: 7
+server:
+  port: 8080

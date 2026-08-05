@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: FoodDeliveryOpsDB
+    environment:
+      POSTGRES_DB: fooddeliveryops
+      POSTGRES_USER: foodops
+      POSTGRES_PASSWORD: foodops
+    ports:
+      - "5432:5432"
+    volumes:
+      - fooddeliveryops_pgdata:/var/lib/postgresql/data
+
+volumes:
+  fooddeliveryops_pgdata:
