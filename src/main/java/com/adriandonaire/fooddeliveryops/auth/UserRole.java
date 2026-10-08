@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum UserRole {
     ADMIN,
     RIDER,
-    ROTISERIA;
+    FOOD_SHOP;
 
     @JsonCreator
     public static UserRole fromValue(String value) {
