@@ -19,6 +19,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ApiErrorResponse(exception.getMessage()));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalStateException(IllegalStateException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(exception.getMessage()));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
         return ResponseEntity.badRequest().body(new ApiErrorResponse("No se pudo guardar la cuenta porque los datos superan los límites permitidos o ya existen."));
