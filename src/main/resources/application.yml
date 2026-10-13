@@ -1,15 +1,16 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/fooddeliveryops
-    username: foodops
-    password: foodops
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fooddeliveryops}
+    username: ${SPRING_DATASOURCE_USERNAME:foodops}
+    password: ${SPRING_DATASOURCE_PASSWORD:foodops}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
 app:
   jwt:
     secret: ${APP_JWT_SECRET:FoodDeliveryOps_ChangeThisSecret_AtLeast32Chars}
-    access-token-minutes: 30
-    refresh-token-days: 7
+    access-token-minutes: ${APP_JWT_ACCESS_MINUTES:30}
+    refresh-token-days: ${APP_JWT_REFRESH_DAYS:7}
 server:
-  port: 8080
+  port: ${PORT:8080}
+  shutdown: graceful

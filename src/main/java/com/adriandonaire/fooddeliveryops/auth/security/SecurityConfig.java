@@ -38,7 +38,7 @@ public class SecurityConfig {
                     .authenticationEntryPoint(authenticationEntryPoint())
                     .accessDeniedHandler(accessDeniedHandler()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/auth/**", "/hello").permitAll()
+                        .requestMatchers("/auth/**", "/hello", "/health", "/").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/food_shop/**").hasAnyRole("FOOD_SHOP", "ADMIN")
                         .anyRequest().authenticated())
