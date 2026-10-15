@@ -11,6 +11,13 @@ app:
     secret: ${APP_JWT_SECRET:FoodDeliveryOps_ChangeThisSecret_AtLeast32Chars}
     access-token-minutes: ${APP_JWT_ACCESS_MINUTES:30}
     refresh-token-days: ${APP_JWT_REFRESH_DAYS:7}
+  assignment:
+    max-search-radius-km: ${APP_ASSIGNMENT_MAX_SEARCH_RADIUS_KM:15.0}
+    max-gps-age-minutes: ${APP_ASSIGNMENT_MAX_GPS_AGE_MINUTES:60}
+    offer-expiration-minutes: ${APP_ASSIGNMENT_OFFER_EXPIRATION_MINUTES:5}
+    default-shop-lat: ${APP_ASSIGNMENT_DEFAULT_SHOP_LAT:-34.6177}
+    default-shop-lng: ${APP_ASSIGNMENT_DEFAULT_SHOP_LNG:-68.3301}
+    default-shop-address: ${APP_ASSIGNMENT_DEFAULT_SHOP_ADDRESS:Av. Mitre 340, San Rafael}
 server:
   port: ${PORT:8080}
   shutdown: graceful

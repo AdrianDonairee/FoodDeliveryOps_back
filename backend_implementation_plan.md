@@ -130,16 +130,16 @@ develop
 
 ---
 
-### Branch: `feature/06-proximity-assignment-engine`
+### Branch: `feature/06-proximity-assignment-engine` [COMPLETED]
 **Objective:** Build the core logistics engine calculating spatial proximity between food shops and riders, handling sequential assignment queues.
 
-#### 📋 Issue #6.1: Spatial Proximity & Haversine Distance Calculator
+#### ✅ Issue #6.1: Spatial Proximity & Haversine Distance Calculator
 *   **Title:** Develop proximity calculation service and rider filtering pipeline
 *   **Description:**
     *   Implement Haversine formula / Spatial SQL queries to calculate real-time distance between Food Shop coordinates and active riders.
     *   Filter riders by: Duty = `TRABAJANDO`, Availability = `LIBRE`, Active recent GPS signal, within `app.assignment.max-search-radius-km`.
 
-#### 📋 Issue #6.2: Sequential Re-assignment Queue & Response Handling
+#### ✅ Issue #6.2: Sequential Re-assignment Queue & Response Handling
 *   **Title:** Implement order offer routing, accept/reject handlers, and queue fallback
 *   **Description:**
     *   `GET /rider/assignments/current`: Expose current assignment offer or active delivery to rider.

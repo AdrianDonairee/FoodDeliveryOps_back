@@ -49,6 +49,9 @@ class FoodShopOrderControllerTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private com.adriandonaire.fooddeliveryops.assignment.repository.OrderAssignmentRepository orderAssignmentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private final Principal foodShopPrincipal = () -> "test_food_shop";
@@ -60,6 +63,7 @@ class FoodShopOrderControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
+        orderAssignmentRepository.deleteAll();
         orderRepository.deleteAll();
 
         String username = "test_food_shop";

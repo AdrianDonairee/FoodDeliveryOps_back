@@ -1,5 +1,6 @@
 package com.adriandonaire.fooddeliveryops.order.service;
 
+import com.adriandonaire.fooddeliveryops.assignment.service.OrderAssignmentService;
 import com.adriandonaire.fooddeliveryops.auth.AppUser;
 import com.adriandonaire.fooddeliveryops.auth.repository.AppUserRepository;
 import com.adriandonaire.fooddeliveryops.order.Order;
@@ -17,10 +18,16 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final AppUserRepository appUserRepository;
+    private final OrderAssignmentService orderAssignmentService;
 
-    public OrderService(OrderRepository orderRepository, AppUserRepository appUserRepository) {
+    public OrderService(
+            OrderRepository orderRepository,
+            AppUserRepository appUserRepository,
+            OrderAssignmentService orderAssignmentService
+    ) {
         this.orderRepository = orderRepository;
         this.appUserRepository = appUserRepository;
+        this.orderAssignmentService = orderAssignmentService;
     }
 
     @Transactional
@@ -49,6 +56,7 @@ public class OrderService {
         });
 
         Order saved = orderRepository.save(order);
+        orderAssignmentService.assignOrder(saved);
         return OrderResponse.fromEntity(saved);
     }
 

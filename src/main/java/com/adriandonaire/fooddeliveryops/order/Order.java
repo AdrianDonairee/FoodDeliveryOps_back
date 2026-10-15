@@ -28,7 +28,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "food_shop_id", nullable = false)
     private AppUser foodShop;
 
@@ -60,7 +60,7 @@ public class Order {
     @Column(nullable = false, length = 30)
     private OrderStatus status = OrderStatus.PENDIENTE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_rider_id")
     private AppUser assignedRider;
 
