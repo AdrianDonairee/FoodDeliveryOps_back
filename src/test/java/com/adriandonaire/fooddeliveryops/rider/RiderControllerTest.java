@@ -5,6 +5,7 @@ import com.adriandonaire.fooddeliveryops.auth.UserRole;
 import com.adriandonaire.fooddeliveryops.auth.repository.AppUserRepository;
 import com.adriandonaire.fooddeliveryops.common.GlobalExceptionHandler;
 import com.adriandonaire.fooddeliveryops.rider.controller.RiderController;
+import com.adriandonaire.fooddeliveryops.rider.dto.UpdateDeliveryStatusRequest;
 import com.adriandonaire.fooddeliveryops.rider.dto.UpdateDutyStatusRequest;
 import com.adriandonaire.fooddeliveryops.rider.dto.UpdateLocationRequest;
 import com.adriandonaire.fooddeliveryops.rider.repository.RiderStatusRepository;
@@ -47,6 +48,12 @@ class RiderControllerTest {
     private RiderStatusRepository riderStatusRepository;
 
     @Autowired
+    private com.adriandonaire.fooddeliveryops.order.repository.OrderRepository orderRepository;
+
+    @Autowired
+    private com.adriandonaire.fooddeliveryops.assignment.repository.OrderAssignmentRepository orderAssignmentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private final String riderUsername = "test_rider_moto";
@@ -60,6 +67,8 @@ class RiderControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
+        orderAssignmentRepository.deleteAll();
+        orderRepository.deleteAll();
         riderStatusRepository.deleteAll();
 
         riderUser = appUserRepository.findByUsername(riderUsername).orElseGet(() -> {
@@ -157,5 +166,51 @@ class RiderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", is("No puedes cambiar a NO_TRABAJANDO mientras tengas un pedido asignado o en curso.")));
+    }
+
+    @Test
+    @DisplayName("GET /rider/profile debe retornar perfil completo del repartidor con métricas")
+    void testGetRiderProfile() throws Exception {
+        mockMvc.perform(get("/rider/profile")
+                        .principal(riderPrincipal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username", is(riderUsername)))
+                .andExpect(jsonPath("$.dutyStatus", notNullValue()))
+                .andExpect(jsonPath("$.availabilityStatus", notNullValue()))
+                .andExpect(jsonPath("$.deliveriesCountToday", is(0)));
+    }
+
+    @Test
+    @DisplayName("PATCH /rider/orders/{orderId}/status debe avanzar pedido a EN_CAMINO y ENTREGADO")
+    void testUpdateDeliveryStatusFlow() throws Exception {
+        // Crear comercio y pedido asignado
+        AppUser shop = appUserRepository.findByUsername("shop_for_rider_test").orElseGet(() ->
+                appUserRepository.save(new AppUser("shop_for_rider_test", "pass", UserRole.FOOD_SHOP)));
+
+        com.adriandonaire.fooddeliveryops.order.Order order = new com.adriandonaire.fooddeliveryops.order.Order(
+                shop, "Juan", "260411", "Mitre 100", "Nota", -34.6177, -68.3301, 3000.0
+        );
+        order.setStatus(com.adriandonaire.fooddeliveryops.order.OrderStatus.ASIGNADO);
+        order.setAssignedRider(riderUser);
+        order.addItem(new com.adriandonaire.fooddeliveryops.order.OrderItem("Pizza", 1, 3000.0));
+        order = orderRepository.save(order);
+
+        // 1. Avanzar a EN_CAMINO
+        UpdateDeliveryStatusRequest toEnCamino = new UpdateDeliveryStatusRequest(com.adriandonaire.fooddeliveryops.order.OrderStatus.EN_CAMINO);
+        mockMvc.perform(patch("/rider/orders/" + order.getId() + "/status")
+                        .principal(riderPrincipal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(toEnCamino)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderStatus", is("EN_CAMINO")));
+
+        // 2. Avanzar a ENTREGADO
+        UpdateDeliveryStatusRequest toEntregado = new UpdateDeliveryStatusRequest(com.adriandonaire.fooddeliveryops.order.OrderStatus.ENTREGADO);
+        mockMvc.perform(patch("/rider/orders/" + order.getId() + "/status")
+                        .principal(riderPrincipal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(toEntregado)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availabilityStatus", is("LIBRE")));
     }
 }

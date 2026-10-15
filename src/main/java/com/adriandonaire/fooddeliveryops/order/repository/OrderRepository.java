@@ -25,4 +25,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("riderId") Long riderId,
             @Param("statuses") java.util.Collection<OrderStatus> statuses
     );
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.assignedRider.id = :riderId AND o.status = :status AND o.updatedAt >= :since")
+    long countByRiderIdAndStatusAndUpdatedAtAfter(
+            @Param("riderId") Long riderId,
+            @Param("status") OrderStatus status,
+            @Param("since") java.time.Instant since
+    );
 }

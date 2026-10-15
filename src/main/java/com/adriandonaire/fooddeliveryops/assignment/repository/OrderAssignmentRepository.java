@@ -41,4 +41,10 @@ public interface OrderAssignmentRepository extends JpaRepository<OrderAssignment
 
     @Query("SELECT oa FROM OrderAssignment oa WHERE oa.order.id = :orderId AND oa.status = 'OFFERED'")
     List<OrderAssignment> findActiveOffersByOrderId(@Param("orderId") Long orderId);
+
+    @Query("SELECT COALESCE(SUM(oa.deliveryEarnings), 0.0) FROM OrderAssignment oa WHERE oa.rider.id = :riderId AND oa.status = 'ACCEPTED' AND oa.updatedAt >= :since")
+    Double sumEarningsByRiderIdAndSince(
+            @Param("riderId") Long riderId,
+            @Param("since") Instant since
+    );
 }

@@ -1,6 +1,8 @@
 package com.adriandonaire.fooddeliveryops.rider.controller;
 
+import com.adriandonaire.fooddeliveryops.rider.dto.RiderProfileResponse;
 import com.adriandonaire.fooddeliveryops.rider.dto.RiderStatusResponse;
+import com.adriandonaire.fooddeliveryops.rider.dto.UpdateDeliveryStatusRequest;
 import com.adriandonaire.fooddeliveryops.rider.dto.UpdateDutyStatusRequest;
 import com.adriandonaire.fooddeliveryops.rider.dto.UpdateLocationRequest;
 import com.adriandonaire.fooddeliveryops.rider.service.RiderService;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +34,11 @@ public class RiderController {
         return ResponseEntity.ok(riderService.getRiderStatus(principal.getName()));
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<RiderProfileResponse> getProfile(Principal principal) {
+        return ResponseEntity.ok(riderService.getRiderProfile(principal.getName()));
+    }
+
     @PatchMapping("/status/duty")
     public ResponseEntity<RiderStatusResponse> updateDutyStatus(
             @Valid @RequestBody UpdateDutyStatusRequest request,
@@ -45,5 +53,14 @@ public class RiderController {
             Principal principal
     ) {
         return ResponseEntity.ok(riderService.updateLocation(principal.getName(), request));
+    }
+
+    @PatchMapping("/orders/{orderId}/status")
+    public ResponseEntity<RiderProfileResponse> updateDeliveryStatus(
+            @PathVariable Long orderId,
+            @Valid @RequestBody UpdateDeliveryStatusRequest request,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(riderService.updateDeliveryStatus(orderId, request, principal.getName()));
     }
 }

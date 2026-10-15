@@ -148,10 +148,10 @@ develop
 
 ---
 
-### Branch: `feature/07-order-lifecycle-state-machine`
+### Branch: `feature/07-order-lifecycle-state-machine` [COMPLETED]
 **Objective:** Finalize order progression transitions and ensure strict state validation.
 
-#### 📋 Issue #7.1: Order Delivery Lifecycle Progression
+#### ✅ Issue #7.1: Order Delivery Lifecycle Progression
 *   **Title:** Implement `/rider/orders/{orderId}/status` state machine transition logic
 *   **Description:**
     *   `PATCH /rider/orders/{orderId}/status`: Allow rider to advance status (`EN_CAMINO` upon food pickup, `ENTREGADO` upon customer delivery).
