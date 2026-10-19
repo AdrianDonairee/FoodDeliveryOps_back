@@ -32,4 +32,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("since") java.time.Instant since
     );
+
+    boolean existsByFoodShopId(Long foodShopId);
+
+    boolean existsByAssignedRiderId(Long riderId);
 }

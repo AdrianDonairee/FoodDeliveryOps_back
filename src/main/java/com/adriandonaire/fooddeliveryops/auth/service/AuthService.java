@@ -10,7 +10,11 @@ import com.adriandonaire.fooddeliveryops.auth.dto.LoginRequest;
 import com.adriandonaire.fooddeliveryops.auth.dto.RefreshRequest;
 import com.adriandonaire.fooddeliveryops.auth.dto.UpdateUserRequest;
 import com.adriandonaire.fooddeliveryops.auth.dto.UserResponse;
+import com.adriandonaire.fooddeliveryops.assignment.repository.OrderAssignmentRepository;
 import com.adriandonaire.fooddeliveryops.auth.repository.AppUserRepository;
+import com.adriandonaire.fooddeliveryops.auth.repository.RefreshTokenRepository;
+import com.adriandonaire.fooddeliveryops.order.repository.OrderRepository;
+import com.adriandonaire.fooddeliveryops.rider.repository.RiderStatusRepository;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,16 +27,28 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RiderStatusRepository riderStatusRepository;
+    private final OrderAssignmentRepository orderAssignmentRepository;
+    private final OrderRepository orderRepository;
 
     public AuthService(
             AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            RefreshTokenService refreshTokenService) {
+            RefreshTokenService refreshTokenService,
+            RefreshTokenRepository refreshTokenRepository,
+            RiderStatusRepository riderStatusRepository,
+            OrderAssignmentRepository orderAssignmentRepository,
+            OrderRepository orderRepository) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.riderStatusRepository = riderStatusRepository;
+        this.orderAssignmentRepository = orderAssignmentRepository;
+        this.orderRepository = orderRepository;
     }
 
     @Transactional
@@ -125,6 +141,13 @@ public class AuthService {
             throw new IllegalArgumentException("Las cuentas admin no se pueden eliminar desde este panel.");
         }
 
+        if (orderRepository.existsByFoodShopId(id) || orderRepository.existsByAssignedRiderId(id)) {
+            throw new IllegalArgumentException("No se puede eliminar la cuenta porque posee pedidos registrados en el sistema.");
+        }
+
+        orderAssignmentRepository.deleteAllByRiderId(id);
+        riderStatusRepository.deleteByRiderId(id);
+        refreshTokenRepository.deleteAllByUser(existingUser);
         appUserRepository.delete(existingUser);
     }
 

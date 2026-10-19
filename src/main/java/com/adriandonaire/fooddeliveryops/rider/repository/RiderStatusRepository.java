@@ -24,4 +24,8 @@ public interface RiderStatusRepository extends JpaRepository<RiderStatus, Long> 
             @Param("dutyStatus") DutyStatus dutyStatus,
             @Param("availabilityStatus") AvailabilityStatus availabilityStatus
     );
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM RiderStatus rs WHERE rs.rider.id = :riderId")
+    void deleteByRiderId(@Param("riderId") Long riderId);
 }

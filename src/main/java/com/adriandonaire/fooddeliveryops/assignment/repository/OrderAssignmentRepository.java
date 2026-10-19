@@ -47,4 +47,8 @@ public interface OrderAssignmentRepository extends JpaRepository<OrderAssignment
             @Param("riderId") Long riderId,
             @Param("since") Instant since
     );
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM OrderAssignment oa WHERE oa.rider.id = :riderId")
+    void deleteAllByRiderId(@Param("riderId") Long riderId);
 }
