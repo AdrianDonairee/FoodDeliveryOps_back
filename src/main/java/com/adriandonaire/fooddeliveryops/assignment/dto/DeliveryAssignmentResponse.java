@@ -10,6 +10,8 @@ public record DeliveryAssignmentResponse(
         OrderStatus status,
         String foodShopName,
         String foodShopAddress,
+        Double foodShopLat,
+        Double foodShopLng,
         String customerName,
         String customerPhone,
         String customerAddress,
@@ -28,11 +30,23 @@ public record DeliveryAssignmentResponse(
                 .map(DeliveryOfferItemResponse::fromEntity)
                 .toList();
 
+        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null && !order.getFoodShop().getAddress().isBlank())
+                ? order.getFoodShop().getAddress()
+                : defaultShopAddress;
+        Double shopLat = (order.getFoodShop() != null && order.getFoodShop().getLatitude() != null)
+                ? order.getFoodShop().getLatitude()
+                : -34.6177;
+        Double shopLng = (order.getFoodShop() != null && order.getFoodShop().getLongitude() != null)
+                ? order.getFoodShop().getLongitude()
+                : -68.3301;
+
         return new DeliveryAssignmentResponse(
                 order.getId(),
                 order.getStatus(),
                 order.getFoodShop() != null ? order.getFoodShop().getUsername() : "Comercio",
-                defaultShopAddress,
+                shopAddress,
+                shopLat,
+                shopLng,
                 order.getCustomerName(),
                 order.getCustomerPhone(),
                 order.getCustomerAddress(),
@@ -55,11 +69,23 @@ public record DeliveryAssignmentResponse(
         String acceptedTime = order.getUpdatedAt() != null ? order.getUpdatedAt().toString()
                 : (order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
 
+        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null && !order.getFoodShop().getAddress().isBlank())
+                ? order.getFoodShop().getAddress()
+                : defaultShopAddress;
+        Double shopLat = (order.getFoodShop() != null && order.getFoodShop().getLatitude() != null)
+                ? order.getFoodShop().getLatitude()
+                : -34.6177;
+        Double shopLng = (order.getFoodShop() != null && order.getFoodShop().getLongitude() != null)
+                ? order.getFoodShop().getLongitude()
+                : -68.3301;
+
         return new DeliveryAssignmentResponse(
                 order.getId(),
                 order.getStatus(),
                 order.getFoodShop() != null ? order.getFoodShop().getUsername() : "Comercio",
-                defaultShopAddress,
+                shopAddress,
+                shopLat,
+                shopLng,
                 order.getCustomerName(),
                 order.getCustomerPhone(),
                 order.getCustomerAddress(),

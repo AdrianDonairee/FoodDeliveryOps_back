@@ -28,6 +28,15 @@ public class AppUser {
     @Column(nullable = false, length = 20)
     private UserRole role;
 
+    @Column(length = 255)
+    private String address;
+
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
     @Column(nullable = false)
     private boolean enabled = true;
 
@@ -41,6 +50,15 @@ public class AppUser {
         this.username = username;
         this.passwordHash = passwordHash;
         this.role = role;
+    }
+
+    public AppUser(String username, String passwordHash, UserRole role, String address, Double latitude, Double longitude) {
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.role = role;
+        this.address = address;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public Long getId() {
@@ -73,6 +91,30 @@ public class AppUser {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public Instant getCreatedAt() {

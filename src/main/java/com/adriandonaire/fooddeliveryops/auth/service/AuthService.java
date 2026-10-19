@@ -91,15 +91,36 @@ public class AuthService {
             throw new IllegalArgumentException("Las cuentas admin solo se crean por semilla o migración.");
         }
 
-        AppUser newUser = new AppUser(username, passwordEncoder.encode(request.password()), request.role());
+        AppUser newUser = new AppUser(
+                username,
+                passwordEncoder.encode(request.password()),
+                request.role(),
+                request.address(),
+                request.latitude(),
+                request.longitude()
+        );
         AppUser savedUser = appUserRepository.save(newUser);
-        return new AccountResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
+        return new AccountResponse(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getRole(),
+                savedUser.getAddress(),
+                savedUser.getLatitude(),
+                savedUser.getLongitude()
+        );
     }
 
     @Transactional
     public List<AccountResponse> listUsers() {
         return appUserRepository.findAll().stream()
-                .map(user -> new AccountResponse(user.getId(), user.getUsername(), user.getRole()))
+                .map(user -> new AccountResponse(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getRole(),
+                        user.getAddress(),
+                        user.getLatitude(),
+                        user.getLongitude()
+                ))
                 .toList();
     }
 
@@ -123,13 +144,29 @@ public class AuthService {
 
         existingUser.setUsername(username);
         existingUser.setRole(request.role());
+        if (request.address() != null) {
+            existingUser.setAddress(request.address());
+        }
+        if (request.latitude() != null) {
+            existingUser.setLatitude(request.latitude());
+        }
+        if (request.longitude() != null) {
+            existingUser.setLongitude(request.longitude());
+        }
 
         if (request.password() != null && !request.password().trim().isEmpty()) {
             existingUser.setPasswordHash(passwordEncoder.encode(request.password()));
         }
 
         AppUser savedUser = appUserRepository.save(existingUser);
-        return new AccountResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
+        return new AccountResponse(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getRole(),
+                savedUser.getAddress(),
+                savedUser.getLatitude(),
+                savedUser.getLongitude()
+        );
     }
 
     @Transactional

@@ -8,5 +8,8 @@ import jakarta.validation.constraints.Size;
 public record CreateUserRequest(
         @NotBlank @Size(max = 50) String username,
         @NotBlank String password,
-        @NotNull UserRole role) {
+        @NotNull UserRole role,
+        String address,
+        Double latitude,
+        Double longitude) {
 }
