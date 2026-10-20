@@ -268,10 +268,12 @@ jobs:
                 --secrets "${SECRETS_LIST[@]}"
             fi
 
+            REVISION_SUFFIX="v$(date +%s)"
             az containerapp update \
               --name "$REPO_NAME-app" \
               --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
               --image "$TARGET_IMAGE" \
+              --revision-suffix "$REVISION_SUFFIX" \
               --set-env-vars "${ENV_VARS[@]}"
           else
             echo "Creando nueva Container App..."
