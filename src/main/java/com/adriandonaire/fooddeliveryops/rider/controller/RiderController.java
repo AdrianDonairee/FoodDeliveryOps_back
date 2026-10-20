@@ -34,6 +34,7 @@ public class RiderController {
         return ResponseEntity.ok(riderService.getRiderStatus(principal.getName()));
     }
 
+    // prueba
     @GetMapping("/profile")
     public ResponseEntity<RiderProfileResponse> getProfile(Principal principal) {
         return ResponseEntity.ok(riderService.getRiderProfile(principal.getName()));
@@ -42,16 +43,14 @@ public class RiderController {
     @PatchMapping("/status/duty")
     public ResponseEntity<RiderStatusResponse> updateDutyStatus(
             @Valid @RequestBody UpdateDutyStatusRequest request,
-            Principal principal
-    ) {
+            Principal principal) {
         return ResponseEntity.ok(riderService.updateDutyStatus(principal.getName(), request));
     }
 
     @PostMapping("/location")
     public ResponseEntity<RiderStatusResponse> updateLocation(
             @Valid @RequestBody UpdateLocationRequest request,
-            Principal principal
-    ) {
+            Principal principal) {
         return ResponseEntity.ok(riderService.updateLocation(principal.getName(), request));
     }
 
@@ -59,8 +58,7 @@ public class RiderController {
     public ResponseEntity<RiderProfileResponse> updateDeliveryStatus(
             @PathVariable Long orderId,
             @Valid @RequestBody UpdateDeliveryStatusRequest request,
-            Principal principal
-    ) {
+            Principal principal) {
         return ResponseEntity.ok(riderService.updateDeliveryStatus(orderId, request, principal.getName()));
     }
 }
