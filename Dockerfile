@@ -28,5 +28,9 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 
+# Healthcheck nativo para orquestadores y monitoreo de desechabilidad (12-Factor IX: Disposability)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/liveness || exit 1
+
 # Parámetros optimizados para contenedores (ajuste dinámico de memoria RAM en contenedores)
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

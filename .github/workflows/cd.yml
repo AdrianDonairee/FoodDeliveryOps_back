@@ -1,0 +1,324 @@
+name: CD Pipeline - Azure ACR & Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Forzar despliegue incluso si el commit contiene /notdeploy'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  # =========================================================================
+  # CONTINUOUS DEPLOYMENT (CD) - STAGE 1: Build & Push Image to ACR
+  # =========================================================================
+  build-and-push:
+    name: 1. Build & Push Image to ACR
+    runs-on: ubuntu-latest
+    if: |
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
+      (!contains(github.event.head_commit.message, '/notdeploy') || inputs.force_deploy == true)
+    outputs:
+      image_full: ${{ steps.meta.outputs.image_full }}
+      repo_name: ${{ steps.meta.outputs.repo_name }}
+      skip_deploy: ${{ steps.meta.outputs.skip_deploy }}
+      new_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine Semantic Version from Commit Message
+        id: meta
+        run: |
+          python3 - << 'EOF'
+          import os
+          import re
+          import subprocess
+
+          msg = os.environ.get("COMMIT_MSG", "").lower()
+          ref = os.environ.get("GITHUB_REF", "")
+          ref_name = os.environ.get("GITHUB_REF_NAME", "")
+          repo = os.environ.get("REPO_NAME", "").lower().replace("_", "-")
+          acr_url = os.environ.get("ACR_URL", "")
+
+          # Obtener último tag existente de Git
+          try:
+              latest_tag = subprocess.check_output(
+                  ["git", "describe", "--tags", "--abbrev=0"], stderr=subprocess.DEVNULL
+              ).decode().strip()
+          except Exception:
+              latest_tag = "1.0.0"
+
+          has_v = latest_tag.startswith("v")
+          clean_tag = latest_tag.lstrip("v")
+          parts = clean_tag.split(".")
+
+          try:
+              major = int(parts[0]) if len(parts) > 0 else 1
+              minor = int(parts[1]) if len(parts) > 1 else 0
+              patch = int(parts[2]) if len(parts) > 2 else 0
+          except ValueError:
+              major, minor, patch = 1, 0, 0
+
+          # Reglas por mensaje de commit (Conventional Commits)
+          is_feat = bool(re.search(r"\bfeat(\(.*\))?:", msg) or "feat(" in msg)
+          is_fix_or_refactor = bool(re.search(r"\b(fix|refactor)(\(.*\))?:", msg) or "fix(" in msg or "refactor(" in msg)
+          is_skip_deploy = bool(
+              re.search(r"\b(chore|doc|docs)(\(.*\))?:", msg)
+              or "chore(" in msg
+              or "doc(" in msg
+              or "docs(" in msg
+              or "/notdeploy" in msg
+          )
+
+          # Calcular nuevo tag
+          if ref.startswith("refs/tags/"):
+              tag = ref_name
+          elif is_feat:
+              minor += 1
+              patch = 0
+              tag = f"v{major}.{minor}.{patch}" if has_v else f"{major}.{minor}.{patch}"
+          elif is_fix_or_refactor:
+              patch += 1
+              tag = f"v{major}.{minor}.{patch}" if has_v else f"{major}.{minor}.{patch}"
+          else:
+              tag = latest_tag
+
+          image_full = f"{acr_url}/{repo}:{tag}"
+          image_latest = f"{acr_url}/{repo}:latest"
+
+          print(f"Commit message: {msg}")
+          print(f"Tag anterior: {latest_tag} -> Nuevo Tag: {tag}")
+          print(f"Skip deploy: {is_skip_deploy}")
+
+          github_output = os.environ.get("GITHUB_OUTPUT")
+          if github_output:
+              with open(github_output, "a") as f:
+                  f.write(f"repo_name={repo}\n")
+                  f.write(f"image_tag={tag}\n")
+                  f.write(f"image_full={image_full}\n")
+                  f.write(f"image_latest={image_latest}\n")
+                  f.write(f"latest_tag={latest_tag}\n")
+                  f.write(f"skip_deploy={'true' if is_skip_deploy else 'false'}\n")
+          EOF
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          ACR_URL: ${{ secrets.ACR_NAME_URL }}
+
+      - name: Push New Git Tag to Repository
+        if: github.ref == 'refs/heads/main' && steps.meta.outputs.image_tag != steps.meta.outputs.latest_tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.meta.outputs.image_tag }}"
+          git push origin "${{ steps.meta.outputs.image_tag }}" || echo "Tag already pushed"
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Docker Login to ACR
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_NAME_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_full }}
+            ${{ steps.meta.outputs.image_latest }}
+          build-args: |
+            BUILD_DATE=${{ steps.meta.outputs.image_tag }}
+            VCS_REF=${{ github.sha }}
+            IMAGE_TAG=${{ steps.meta.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=${{ steps.meta.outputs.repo_name }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.image_tag }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Azure Logout
+        if: always()
+        run: |
+          az logout || true
+
+  # =========================================================================
+  # CONTINUOUS DEPLOYMENT (CD) - STAGE 2: Deploy to Azure Container App
+  # =========================================================================
+  deploy:
+    name: 2. Deploy to Azure Container App
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.build-and-push.outputs.skip_deploy != 'true' &&
+      !contains(github.event.head_commit.message, '/notdeploy') &&
+      needs.build-and-push.result == 'success'
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy or Update Container App
+        run: |
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+
+          # Determinar imagen a desplegar
+          if [ -n "${{ needs.build-and-push.outputs.image_full }}" ]; then
+            TARGET_IMAGE="${{ needs.build-and-push.outputs.image_full }}"
+          else
+            TARGET_IMAGE="${{ secrets.ACR_NAME_URL }}/$REPO_NAME:latest"
+          fi
+
+          echo "Desplegando imagen: $TARGET_IMAGE"
+
+          # Obtener el entorno de Container Apps del grupo de recursos
+          ACA_ENV=$(az containerapp env list --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --query "[0].name" -o tsv)
+
+          if [ -z "$ACA_ENV" ]; then
+            echo "No se detectó entorno de Container Apps previo. Creando 'cae-donaire' automáticamente..."
+            ACR_NAME=$(echo "${{ secrets.ACR_NAME_URL }}" | cut -d'.' -f1)
+            LOC=$(az acr show --name "$ACR_NAME" --query location -o tsv 2>/dev/null || echo "eastus")
+            az containerapp env create \
+              --name "cae-donaire" \
+              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+              --location "$LOC"
+            ACA_ENV="cae-donaire"
+          fi
+
+          echo "Entorno a utilizar: $ACA_ENV"
+
+          # Configurar variables de entorno y conexión para Application Insights
+          APP_INSIGHTS_CS=""
+          if [ -n "${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" ]; then
+            APP_INSIGHTS_CS="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
+          elif [ -n "${{ secrets.CONNECTION_STRING }}" ]; then
+            APP_INSIGHTS_CS="${{ secrets.CONNECTION_STRING }}"
+          fi
+
+          ENV_VARS=(
+            ENVIRONMENT=production
+            PORT=8080
+          )
+
+          # Inyectar variables de Base de Datos si existen en los secretos
+          SECRETS_LIST=()
+          if [ -n "${{ secrets.DB_URL }}" ]; then
+            SECRETS_LIST+=("db-url=${{ secrets.DB_URL }}")
+            ENV_VARS+=(SPRING_DATASOURCE_URL=secretref:db-url)
+          fi
+          if [ -n "${{ secrets.DB_USERNAME }}" ]; then
+            SECRETS_LIST+=("db-username=${{ secrets.DB_USERNAME }}")
+            ENV_VARS+=(SPRING_DATASOURCE_USERNAME=secretref:db-username)
+          fi
+          if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
+            SECRETS_LIST+=("db-password=${{ secrets.DB_PASSWORD }}")
+            ENV_VARS+=(SPRING_DATASOURCE_PASSWORD=secretref:db-password)
+          fi
+          if [ -n "${{ secrets.APP_JWT_SECRET }}" ]; then
+            SECRETS_LIST+=("jwt-secret=${{ secrets.APP_JWT_SECRET }}")
+            ENV_VARS+=(APP_JWT_SECRET=secretref:jwt-secret)
+          fi
+
+          # Asociar Application Insights
+          if [ -n "$APP_INSIGHTS_CS" ]; then
+            SECRETS_LIST+=("applicaitoninsights=$APP_INSIGHTS_CS")
+            ENV_VARS+=(APPLICATIONINSIGHTS_CONNECTION_STRING=secretref:applicaitoninsights)
+          fi
+          if [ -n "${{ secrets.INSTRUMENTATION_KEY }}" ]; then
+            SECRETS_LIST+=("instrumentation=${{ secrets.INSTRUMENTATION_KEY }}")
+            ENV_VARS+=(INSTRUMENTATION_KEY=secretref:instrumentation)
+          fi
+
+          # Verificar si la Container App existe
+          if az containerapp show --name "$REPO_NAME-app" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" > /dev/null 2>&1; then
+            echo "Actualizando Container App existente..."
+
+            # Actualizar secretos
+            if [ ${#SECRETS_LIST[@]} -gt 0 ]; then
+              az containerapp secret set \
+                --name "$REPO_NAME-app" \
+                --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+                --secrets "${SECRETS_LIST[@]}"
+            fi
+
+            az containerapp update \
+              --name "$REPO_NAME-app" \
+              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+              --image "$TARGET_IMAGE" \
+              --set-env-vars "${ENV_VARS[@]}"
+          else
+            echo "Creando nueva Container App..."
+            CREATE_ARGS=(
+              --name "$REPO_NAME-app"
+              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}"
+              --environment "$ACA_ENV"
+              --image "$TARGET_IMAGE"
+              --registry-server "${{ secrets.ACR_NAME_URL }}"
+              --registry-username "${{ secrets.REGISTRY_USERNAME }}"
+              --registry-password "${{ secrets.REGISTRY_PASSWORD }}"
+              --ingress external
+              --target-port 8080
+              --cpu 0.25
+              --memory 0.5Gi
+              --min-replicas 1
+              --max-replicas 1
+            )
+
+            if [ ${#SECRETS_LIST[@]} -gt 0 ]; then
+              CREATE_ARGS+=(--secrets "${SECRETS_LIST[@]}")
+            fi
+
+            CREATE_ARGS+=(--env-vars "${ENV_VARS[@]}")
+            az containerapp create "${CREATE_ARGS[@]}"
+          fi
+
+      - name: Verify Deployment Health (Smoke Test)
+        run: |
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+          FQDN=$(az containerapp show --name "$REPO_NAME-app" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --query "properties.configuration.ingress.fqdn" -o tsv)
+          
+          if [ -n "$FQDN" ]; then
+            echo "Verificando salud del servicio desplegado en: https://$FQDN/health"
+            for i in {1..6}; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$FQDN/health" || true)
+              echo "Intento $i: HTTP Status $STATUS"
+              if [ "$STATUS" == "200" ]; then
+                echo "✅ El servicio respondió HTTP 200 OK y está en ejecución saludable."
+                exit 0
+              fi
+              sleep 10
+            done
+            echo "⚠️ El servicio aún está iniciando o respondiendo código $STATUS"
+          fi
+
+      - name: Azure Logout
+        if: always()
+        run: |
+          az logout || true
