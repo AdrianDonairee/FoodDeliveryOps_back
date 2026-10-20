@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fooddeliveryops}
-    username: ${SPRING_DATASOURCE_USERNAME:foodops}
-    password: ${SPRING_DATASOURCE_PASSWORD:foodops}
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:fooddeliveryops;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
