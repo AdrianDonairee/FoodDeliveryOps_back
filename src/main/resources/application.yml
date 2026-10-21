@@ -10,8 +10,16 @@ spring:
     properties:
       hibernate:
         dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
+
+  # 12-Factor App: Factor IX - Disposability (Tiempo de gracia para apagado seguro)
   lifecycle:
     timeout-per-shutdown-phase: 20s
+
+# 12-Factor App: Factor IX - Disposability (Apagado Seguro / Graceful Shutdown)
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
 app:
   jwt:
     secret: ${APP_JWT_SECRET:FoodDeliveryOps_ChangeThisSecret_AtLeast32Chars}
@@ -24,19 +32,29 @@ app:
     default-shop-lat: ${APP_ASSIGNMENT_DEFAULT_SHOP_LAT:-34.6177}
     default-shop-lng: ${APP_ASSIGNMENT_DEFAULT_SHOP_LNG:-68.3301}
     default-shop-address: ${APP_ASSIGNMENT_DEFAULT_SHOP_ADDRESS:Av. Mitre 340, San Rafael}
-server:
-  port: ${PORT:8080}
-  shutdown: graceful
+
+# Monitoreo y Metricas (Actuator)
 management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: "*"
   endpoint:
+    prometheus:
+      enabled: true
     health:
+      show-details: always
       probes:
         enabled: true
-      show-details: when_authorized
+  metrics:
+    enable:
+      http.server.requests: true
   info:
     env:
       enabled: true
+
+# Silenciar arranque de librerias y mostrar solo las peticiones de FoodDeliveryOps
+logging:
+  level:
+    root: WARN
+    com.adriandonaire.fooddeliveryops: INFO
