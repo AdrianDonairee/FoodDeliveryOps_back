@@ -6,6 +6,11 @@ on:
       - main
     tags:
       - "v*"
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -41,7 +46,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Determine Semantic Version from Commit Message
+      - name: Determine Semantic Version and Code vs Doc Changes
         id: meta
         run: |
           python3 - << 'EOF'
@@ -55,7 +60,7 @@ jobs:
           repo = os.environ.get("REPO_NAME", "").lower().replace("_", "-")
           acr_url = os.environ.get("ACR_URL", "")
 
-          # Obtener último tag existente de Git
+          # 1. Obtener último tag existente de Git
           try:
               latest_tag = subprocess.check_output(
                   ["git", "describe", "--tags", "--abbrev=0"], stderr=subprocess.DEVNULL
@@ -74,36 +79,63 @@ jobs:
           except ValueError:
               major, minor, patch = 1, 0, 0
 
-          # Reglas por mensaje de commit (Conventional Commits)
-          is_feat = bool(re.search(r"\bfeat(\(.*\))?:", msg) or "feat(" in msg)
-          is_fix_or_refactor = bool(re.search(r"\b(fix|refactor)(\(.*\))?:", msg) or "fix(" in msg or "refactor(" in msg)
+          # 2. Analizar archivos modificados en el commit
+          try:
+              diff_files = subprocess.check_output(
+                  ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"],
+                  stderr=subprocess.DEVNULL
+              ).decode().splitlines()
+          except Exception:
+              diff_files = []
+
+          doc_extensions = ('.md', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.svg')
+          def is_doc_file(f):
+              f_clean = f.strip().lower()
+              return (
+                  f_clean.endswith(doc_extensions)
+                  or f_clean.startswith('docs/')
+                  or f_clean == '.gitignore'
+                  or f_clean == 'license'
+                  or 'readme' in f_clean
+              )
+
+          only_docs_changed = len(diff_files) > 0 and all(is_doc_file(f) for f in diff_files)
+
+          # 3. Detectar si debe omitirse la creación de imagen y despliegue
           is_skip_deploy = bool(
-              re.search(r"\b(chore|doc|docs)(\(.*\))?:", msg)
-              or "chore(" in msg
-              or "doc(" in msg
-              or "docs(" in msg
+              only_docs_changed
+              or re.search(r"\b(chore|doc|docs)(\(.*\))?:", msg)
+              or "doc:" in msg
+              or "docs:" in msg
               or "/notdeploy" in msg
           )
 
-          # Calcular nuevo tag
+          # 4. Calcular nueva versión semántica
+          is_feat = bool(re.search(r"\bfeat(\(.*\))?:", msg) or "feat(" in msg)
+
           if ref.startswith("refs/tags/"):
               tag = ref_name
+          elif is_skip_deploy:
+              # Si es cambio de documentación, no incrementamos versión
+              tag = latest_tag
           elif is_feat:
               minor += 1
               patch = 0
               tag = f"v{major}.{minor}.{patch}" if has_v else f"{major}.{minor}.{patch}"
-          elif is_fix_or_refactor:
+          else:
+              # DEFAULT: Cualquier modificación en código (fix, refactor o commit sin prefijo)
+              # SIEMPRE incrementa el PATCH para asegurar nueva imagen y despliegue activo en Azure.
               patch += 1
               tag = f"v{major}.{minor}.{patch}" if has_v else f"{major}.{minor}.{patch}"
-          else:
-              tag = latest_tag
 
           image_full = f"{acr_url}/{repo}:{tag}"
           image_latest = f"{acr_url}/{repo}:latest"
 
           print(f"Commit message: {msg}")
+          print(f"Archivos modificados: {diff_files}")
+          print(f"Solo documentación: {only_docs_changed}")
           print(f"Tag anterior: {latest_tag} -> Nuevo Tag: {tag}")
-          print(f"Skip deploy: {is_skip_deploy}")
+          print(f"Skip deploy / build: {is_skip_deploy}")
 
           github_output = os.environ.get("GITHUB_OUTPUT")
           if github_output:
@@ -123,7 +155,7 @@ jobs:
           ACR_URL: ${{ secrets.ACR_NAME_URL }}
 
       - name: Push New Git Tag to Repository
-        if: github.ref == 'refs/heads/main' && steps.meta.outputs.image_tag != steps.meta.outputs.latest_tag
+        if: github.ref == 'refs/heads/main' && steps.meta.outputs.skip_deploy != 'true' && steps.meta.outputs.image_tag != steps.meta.outputs.latest_tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -131,11 +163,13 @@ jobs:
           git push origin "${{ steps.meta.outputs.image_tag }}" || echo "Tag already pushed"
 
       - name: Azure Login
+        if: steps.meta.outputs.skip_deploy != 'true'
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Docker Login to ACR
+        if: steps.meta.outputs.skip_deploy != 'true'
         uses: azure/docker-login@v2
         with:
           login-server: ${{ secrets.ACR_NAME_URL }}
@@ -143,6 +177,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and Push Docker Image
+        if: steps.meta.outputs.skip_deploy != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -163,7 +198,7 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
       - name: Azure Logout
-        if: always()
+        if: always() && steps.meta.outputs.skip_deploy != 'true'
         run: |
           az logout || true
 
@@ -248,8 +283,8 @@ jobs:
 
           # Asociar Application Insights
           if [ -n "$APP_INSIGHTS_CS" ]; then
-            SECRETS_LIST+=("applicaitoninsights=$APP_INSIGHTS_CS")
-            ENV_VARS+=(APPLICATIONINSIGHTS_CONNECTION_STRING=secretref:applicaitoninsights)
+            SECRETS_LIST+=("applicationinsights=$APP_INSIGHTS_CS")
+            ENV_VARS+=(APPLICATIONINSIGHTS_CONNECTION_STRING=secretref:applicationinsights)
           fi
           if [ -n "${{ secrets.INSTRUMENTATION_KEY }}" ]; then
             SECRETS_LIST+=("instrumentation=${{ secrets.INSTRUMENTATION_KEY }}")

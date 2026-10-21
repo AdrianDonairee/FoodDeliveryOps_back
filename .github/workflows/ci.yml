@@ -1,4 +1,4 @@
-name: CI Pipeline - Build & Test
+name: CI Pipeline - Build, Test & Security
 
 on:
   push:
@@ -15,14 +15,16 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   # =========================================================================
   # CONTINUOUS INTEGRATION (CI)
-  # 1. Verification, Unit & Integration Tests, Packaging & Security Scan
+  # 1. Verification, Unit & Integration Tests, Packaging & Snyk Scan
   # =========================================================================
   test-and-verify:
-    name: 1. Run Unit & Integration Tests
+    name: 1. Run Unit & Integration Tests (Maven + Snyk)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -45,9 +47,71 @@ jobs:
         run: ./mvnw clean package -DskipTests
 
       - name: Run Snyk to check for vulnerabilities
+        if: ${{ secrets.SNYK_TOKEN != '' || secrets.API_SNYK != '' }}
         uses: snyk/actions/maven@master
         continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.API_SNYK }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN || secrets.API_SNYK }}
         with:
           args: --severity-threshold=high
+
+  # =========================================================================
+  # 2. Grype - Vulnerability & Dependency Scanner (Anchore)
+  # =========================================================================
+  grype-scan:
+    name: 2. Grype Vulnerability Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Grype vulnerability scanner
+        id: grype
+        uses: anchore/scan-action@v6
+        with:
+          path: "."
+          fail-build: false
+          severity-cutoff: high
+
+      - name: Upload Grype SARIF report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.grype.outputs.sarif != ''
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+
+  # =========================================================================
+  # 3. CodeQL - Static Application Security Testing (SAST)
+  # =========================================================================
+  codeql-analysis:
+    name: 3. CodeQL SAST Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+
+      - name: Build Application for CodeQL
+        run: ./mvnw clean compile -DskipTests
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
