@@ -7,10 +7,20 @@ on:
       - develop
       - "feature/**"
       - "fix/**"
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches:
       - main
       - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
@@ -47,7 +57,6 @@ jobs:
         run: ./mvnw clean package -DskipTests
 
       - name: Run Snyk to check for vulnerabilities
-        if: ${{ secrets.SNYK_TOKEN != '' || secrets.API_SNYK != '' }}
         uses: snyk/actions/maven@master
         continue-on-error: true
         env:
