@@ -1,5 +1,4 @@
 ---
-//prueba
 ## 🌿 Git Branching Strategy & Workflow
 
 To maintain a clean and reliable codebase, the development follow a modified **GitFlow** approach:
