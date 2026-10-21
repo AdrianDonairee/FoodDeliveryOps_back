@@ -24,14 +24,38 @@ permissions:
 
 jobs:
   # =========================================================================
-  # CONTINUOUS DEPLOYMENT (CD) - STAGE 1: Build & Push Image to ACR
+  # CONTINUOUS DEPLOYMENT (CD) - GATEKEEPER: Run Tests Before Build & Deploy
   # =========================================================================
-  build-and-push:
-    name: 1. Build & Push Image to ACR
+  verify-tests:
+    name: 0. Verify Tests before Deploy
     runs-on: ubuntu-latest
     if: |
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
       (!contains(github.event.head_commit.message, '/notdeploy') || inputs.force_deploy == true)
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Make Maven Wrapper Executable
+        run: chmod +x mvnw
+
+      - name: Run Spring Boot Unit & Integration Tests
+        run: ./mvnw clean test
+
+  # =========================================================================
+  # CONTINUOUS DEPLOYMENT (CD) - STAGE 1: Build & Push Image to ACR
+  # =========================================================================
+  build-and-push:
+    name: 1. Build & Push Image to ACR
+    needs: [verify-tests]
+    runs-on: ubuntu-latest
     outputs:
       image_full: ${{ steps.meta.outputs.image_full }}
       repo_name: ${{ steps.meta.outputs.repo_name }}

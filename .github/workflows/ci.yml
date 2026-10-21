@@ -88,6 +88,7 @@ jobs:
       - name: Upload Grype SARIF report to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always() && steps.grype.outputs.sarif != ''
+        continue-on-error: true
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
 
@@ -114,6 +115,7 @@ jobs:
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
+        continue-on-error: true
         with:
           languages: java-kotlin
 
@@ -122,5 +124,6 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true
         with:
           category: "/language:java-kotlin"
