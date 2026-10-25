@@ -24,21 +24,17 @@ public record DeliveryAssignmentResponse(
         String expiresAt,
         String acceptedAt
 ) {
-    public static DeliveryAssignmentResponse fromOffer(OrderAssignment assignment, String defaultShopAddress) {
+    public static DeliveryAssignmentResponse fromOffer(OrderAssignment assignment) {
         Order order = assignment.getOrder();
         List<DeliveryOfferItemResponse> items = order.getItems().stream()
                 .map(DeliveryOfferItemResponse::fromEntity)
                 .toList();
 
-        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null && !order.getFoodShop().getAddress().isBlank())
+        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null)
                 ? order.getFoodShop().getAddress()
-                : defaultShopAddress;
-        Double shopLat = (order.getFoodShop() != null && order.getFoodShop().getLatitude() != null)
-                ? order.getFoodShop().getLatitude()
-                : -34.6177;
-        Double shopLng = (order.getFoodShop() != null && order.getFoodShop().getLongitude() != null)
-                ? order.getFoodShop().getLongitude()
-                : -68.3301;
+                : "";
+        Double shopLat = (order.getFoodShop() != null) ? order.getFoodShop().getLatitude() : null;
+        Double shopLng = (order.getFoodShop() != null) ? order.getFoodShop().getLongitude() : null;
 
         return new DeliveryAssignmentResponse(
                 order.getId(),
@@ -61,7 +57,11 @@ public record DeliveryAssignmentResponse(
         );
     }
 
-    public static DeliveryAssignmentResponse fromActiveOrder(Order order, Double deliveryEarnings, String defaultShopAddress) {
+    public static DeliveryAssignmentResponse fromOffer(OrderAssignment assignment, String ignored) {
+        return fromOffer(assignment);
+    }
+
+    public static DeliveryAssignmentResponse fromActiveOrder(Order order, Double deliveryEarnings) {
         List<DeliveryOfferItemResponse> items = order.getItems().stream()
                 .map(DeliveryOfferItemResponse::fromEntity)
                 .toList();
@@ -69,15 +69,11 @@ public record DeliveryAssignmentResponse(
         String acceptedTime = order.getUpdatedAt() != null ? order.getUpdatedAt().toString()
                 : (order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
 
-        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null && !order.getFoodShop().getAddress().isBlank())
+        String shopAddress = (order.getFoodShop() != null && order.getFoodShop().getAddress() != null)
                 ? order.getFoodShop().getAddress()
-                : defaultShopAddress;
-        Double shopLat = (order.getFoodShop() != null && order.getFoodShop().getLatitude() != null)
-                ? order.getFoodShop().getLatitude()
-                : -34.6177;
-        Double shopLng = (order.getFoodShop() != null && order.getFoodShop().getLongitude() != null)
-                ? order.getFoodShop().getLongitude()
-                : -68.3301;
+                : "";
+        Double shopLat = (order.getFoodShop() != null) ? order.getFoodShop().getLatitude() : null;
+        Double shopLng = (order.getFoodShop() != null) ? order.getFoodShop().getLongitude() : null;
 
         return new DeliveryAssignmentResponse(
                 order.getId(),
@@ -98,5 +94,9 @@ public record DeliveryAssignmentResponse(
                 null,
                 acceptedTime
         );
+    }
+
+    public static DeliveryAssignmentResponse fromActiveOrder(Order order, Double deliveryEarnings, String ignored) {
+        return fromActiveOrder(order, deliveryEarnings);
     }
 }

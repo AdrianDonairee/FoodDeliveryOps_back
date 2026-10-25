@@ -38,7 +38,6 @@ public class OrderAssignmentService {
     private final int offerExpirationMinutes;
     private final double defaultShopLat;
     private final double defaultShopLng;
-    private final String defaultShopAddress;
 
     public OrderAssignmentService(
             OrderAssignmentRepository orderAssignmentRepository,
@@ -49,8 +48,7 @@ public class OrderAssignmentService {
             @Value("${app.assignment.max-gps-age-minutes:60}") int maxGpsAgeMinutes,
             @Value("${app.assignment.offer-expiration-minutes:5}") int offerExpirationMinutes,
             @Value("${app.assignment.default-shop-lat:-34.6177}") double defaultShopLat,
-            @Value("${app.assignment.default-shop-lng:-68.3301}") double defaultShopLng,
-            @Value("${app.assignment.default-shop-address:Av. Mitre 340, San Rafael}") String defaultShopAddress
+            @Value("${app.assignment.default-shop-lng:-68.3301}") double defaultShopLng
     ) {
         this.orderAssignmentRepository = orderAssignmentRepository;
         this.orderRepository = orderRepository;
@@ -61,7 +59,6 @@ public class OrderAssignmentService {
         this.offerExpirationMinutes = offerExpirationMinutes;
         this.defaultShopLat = defaultShopLat;
         this.defaultShopLng = defaultShopLng;
-        this.defaultShopAddress = defaultShopAddress;
     }
 
     /**
@@ -92,14 +89,21 @@ public class OrderAssignmentService {
 
         record Candidate(RiderStatus riderStatus, double distanceKm) {}
 
+        double pickupLat = (order.getFoodShop() != null && order.getFoodShop().getLatitude() != null)
+                ? order.getFoodShop().getLatitude()
+                : defaultShopLat;
+        double pickupLng = (order.getFoodShop() != null && order.getFoodShop().getLongitude() != null)
+                ? order.getFoodShop().getLongitude()
+                : defaultShopLng;
+
         List<Candidate> sortedCandidates = eligibleRiders.stream()
                 .filter(rs -> rs.getCurrentLat() != null && rs.getCurrentLng() != null)
                 .filter(rs -> rs.getLastLocationUpdatedAt() == null || rs.getLastLocationUpdatedAt().isAfter(gpsCutoff))
                 .filter(rs -> !excludedRiders.contains(rs.getRider().getId()))
                 .map(rs -> {
                     double dist = HaversineDistanceCalculator.calculateDistanceKm(
-                            defaultShopLat,
-                            defaultShopLng,
+                            pickupLat,
+                            pickupLng,
                             rs.getCurrentLat(),
                             rs.getCurrentLng()
                     );
@@ -145,7 +149,7 @@ public class OrderAssignmentService {
         if (activeOrderOpt.isPresent()) {
             Order active = activeOrderOpt.get();
             double earnings = 1800.0;
-            return DeliveryAssignmentResponse.fromActiveOrder(active, earnings, defaultShopAddress);
+            return DeliveryAssignmentResponse.fromActiveOrder(active, earnings);
         }
 
         // 2. Check for active unexpired offer
@@ -156,7 +160,7 @@ public class OrderAssignmentService {
         );
 
         if (!activeOffers.isEmpty()) {
-            return DeliveryAssignmentResponse.fromOffer(activeOffers.get(0), defaultShopAddress);
+            return DeliveryAssignmentResponse.fromOffer(activeOffers.get(0));
         }
 
         return null;
@@ -202,7 +206,7 @@ public class OrderAssignmentService {
         riderStatus.setAvailabilityStatus(AvailabilityStatus.OCUPADO);
         riderStatusRepository.save(riderStatus);
 
-        return DeliveryAssignmentResponse.fromActiveOrder(updatedOrder, assignment.getDeliveryEarnings(), defaultShopAddress);
+        return DeliveryAssignmentResponse.fromActiveOrder(updatedOrder, assignment.getDeliveryEarnings());
     }
 
     /**

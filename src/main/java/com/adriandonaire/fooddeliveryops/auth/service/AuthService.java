@@ -91,11 +91,15 @@ public class AuthService {
             throw new IllegalArgumentException("Las cuentas admin solo se crean por semilla o migración.");
         }
 
+        if (request.role() == UserRole.FOOD_SHOP && (request.address() == null || request.address().trim().isBlank())) {
+            throw new IllegalArgumentException("La dirección del local es obligatoria para registrar una cuenta de comercio (food_shop).");
+        }
+
         AppUser newUser = new AppUser(
                 username,
                 passwordEncoder.encode(request.password()),
                 request.role(),
-                request.address(),
+                request.address() != null ? request.address().trim() : null,
                 request.latitude(),
                 request.longitude()
         );
@@ -142,10 +146,14 @@ public class AuthService {
             throw new IllegalArgumentException("Ese nombre de usuario ya existe.");
         }
 
+        if (request.role() == UserRole.FOOD_SHOP && (request.address() == null || request.address().trim().isBlank())) {
+            throw new IllegalArgumentException("La dirección del local es obligatoria para un comercio (food_shop).");
+        }
+
         existingUser.setUsername(username);
         existingUser.setRole(request.role());
         if (request.address() != null) {
-            existingUser.setAddress(request.address());
+            existingUser.setAddress(request.address().trim());
         }
         if (request.latitude() != null) {
             existingUser.setLatitude(request.latitude());

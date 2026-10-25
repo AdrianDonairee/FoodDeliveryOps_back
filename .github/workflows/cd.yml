@@ -286,19 +286,28 @@ jobs:
             PORT=8080
           )
 
-          # Inyectar variables de Base de Datos si existen en los secretos
+          # Inyectar variables de Base de Datos si existen en los secretos, o fallback a H2 en la nube
           SECRETS_LIST=()
           if [ -n "${{ secrets.DB_URL }}" ]; then
             SECRETS_LIST+=("db-url=${{ secrets.DB_URL }}")
             ENV_VARS+=(SPRING_DATASOURCE_URL=secretref:db-url)
-          fi
-          if [ -n "${{ secrets.DB_USERNAME }}" ]; then
-            SECRETS_LIST+=("db-username=${{ secrets.DB_USERNAME }}")
-            ENV_VARS+=(SPRING_DATASOURCE_USERNAME=secretref:db-username)
-          fi
-          if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
-            SECRETS_LIST+=("db-password=${{ secrets.DB_PASSWORD }}")
-            ENV_VARS+=(SPRING_DATASOURCE_PASSWORD=secretref:db-password)
+            if [ -n "${{ secrets.DB_USERNAME }}" ]; then
+              SECRETS_LIST+=("db-username=${{ secrets.DB_USERNAME }}")
+              ENV_VARS+=(SPRING_DATASOURCE_USERNAME=secretref:db-username)
+            fi
+            if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
+              SECRETS_LIST+=("db-password=${{ secrets.DB_PASSWORD }}")
+              ENV_VARS+=(SPRING_DATASOURCE_PASSWORD=secretref:db-password)
+            fi
+          else
+            echo "Aviso: No se configuró DB_URL en los secretos de Azure. Usando H2 runtime fallback en la nube."
+            ENV_VARS+=(
+              SPRING_DATASOURCE_URL="jdbc:h2:mem:fooddeliveryops;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+              SPRING_DATASOURCE_DRIVER_CLASS_NAME="org.h2.Driver"
+              SPRING_DATASOURCE_USERNAME="sa"
+              SPRING_DATASOURCE_PASSWORD=""
+              HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
+            )
           fi
           if [ -n "${{ secrets.APP_JWT_SECRET }}" ]; then
             SECRETS_LIST+=("jwt-secret=${{ secrets.APP_JWT_SECRET }}")

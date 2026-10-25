@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class OrderAssignmentServiceTest {
@@ -54,7 +53,19 @@ class OrderAssignmentServiceTest {
         riderStatusRepository.deleteAll();
 
         foodShop = appUserRepository.findByUsername("test_shop_assignment")
-                .orElseGet(() -> appUserRepository.save(new AppUser("test_shop_assignment", "pass", UserRole.FOOD_SHOP)));
+                .orElseGet(() -> {
+                    AppUser fs = new AppUser("test_shop_assignment", "pass", UserRole.FOOD_SHOP);
+                    fs.setAddress("Av. Hipólito Yrigoyen 500, San Rafael");
+                    fs.setLatitude(-34.6170);
+                    fs.setLongitude(-68.3300);
+                    return appUserRepository.save(fs);
+                });
+        if (foodShop.getAddress() == null) {
+            foodShop.setAddress("Av. Hipólito Yrigoyen 500, San Rafael");
+            foodShop.setLatitude(-34.6170);
+            foodShop.setLongitude(-68.3300);
+            foodShop = appUserRepository.save(foodShop);
+        }
 
         riderClose = appUserRepository.findByUsername("rider_close")
                 .orElseGet(() -> appUserRepository.save(new AppUser("rider_close", "pass", UserRole.RIDER)));
@@ -156,8 +167,7 @@ class OrderAssignmentServiceTest {
                 "Dejar en puerta",
                 -34.6150,
                 -68.3300,
-                5000.0
-        );
+                5000.0);
         order.addItem(new OrderItem("Empanadas docena", 1, 5000.0));
         return orderRepository.save(order);
     }

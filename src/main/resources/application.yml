@@ -1,15 +1,15 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:fooddeliveryops;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
-    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
-    username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fooddeliveryops}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:foodops}
+    password: ${SPRING_DATASOURCE_PASSWORD:foodops}
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     properties:
       hibernate:
-        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
 
   # 12-Factor App: Factor IX - Disposability (Tiempo de gracia para apagado seguro)
   lifecycle:
@@ -31,7 +31,6 @@ app:
     offer-expiration-minutes: ${APP_ASSIGNMENT_OFFER_EXPIRATION_MINUTES:5}
     default-shop-lat: ${APP_ASSIGNMENT_DEFAULT_SHOP_LAT:-34.6177}
     default-shop-lng: ${APP_ASSIGNMENT_DEFAULT_SHOP_LNG:-68.3301}
-    default-shop-address: ${APP_ASSIGNMENT_DEFAULT_SHOP_ADDRESS:Av. Mitre 340, San Rafael}
 
 # Monitoreo y Metricas (Actuator)
 management:

@@ -4,21 +4,20 @@ import com.adriandonaire.fooddeliveryops.auth.AppUser;
 import com.adriandonaire.fooddeliveryops.auth.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
+import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
 
-    private final Key signingKey;
+    private final SecretKey signingKey;
     private final Duration accessTokenDuration;
 
     public JwtService(
@@ -36,7 +35,7 @@ public class JwtService {
                 .claims(Map.of("role", user.getRole().toValue()))
                 .issuedAt(now.date())
                 .expiration(Date.from(now.instant().plus(accessTokenDuration)))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -60,13 +59,13 @@ public class JwtService {
 
     private Claims parseClaims(String token) {
         return Jwts.parser()
-                .verifyWith((javax.crypto.SecretKey) signingKey)
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
-    private Key buildKey(String secret) {
+    private SecretKey buildKey(String secret) {
         byte[] keyBytes = secret.length() >= 32
                 ? secret.getBytes(StandardCharsets.UTF_8)
                 : Decoders.BASE64.decode(secret);

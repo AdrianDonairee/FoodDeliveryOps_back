@@ -34,20 +34,17 @@ public class RiderService {
     private final AppUserRepository appUserRepository;
     private final OrderRepository orderRepository;
     private final OrderAssignmentRepository orderAssignmentRepository;
-    private final String defaultShopAddress;
 
     public RiderService(
             RiderStatusRepository riderStatusRepository,
             AppUserRepository appUserRepository,
             OrderRepository orderRepository,
-            OrderAssignmentRepository orderAssignmentRepository,
-            @Value("${app.assignment.default-shop-address:Av. Mitre 340, San Rafael}") String defaultShopAddress
+            OrderAssignmentRepository orderAssignmentRepository
     ) {
         this.riderStatusRepository = riderStatusRepository;
         this.appUserRepository = appUserRepository;
         this.orderRepository = orderRepository;
         this.orderAssignmentRepository = orderAssignmentRepository;
-        this.defaultShopAddress = defaultShopAddress;
     }
 
     @Transactional
@@ -198,7 +195,7 @@ public class RiderService {
         OrderResponse orderResponse = null;
 
         if (activeOrder != null) {
-            activeDeliveryDto = DeliveryAssignmentResponse.fromActiveOrder(activeOrder, 1800.0, defaultShopAddress);
+            activeDeliveryDto = DeliveryAssignmentResponse.fromActiveOrder(activeOrder, 1800.0);
             orderId = activeOrder.getId();
             orderStatus = activeOrder.getStatus();
             orderResponse = OrderResponse.fromEntity(activeOrder);
