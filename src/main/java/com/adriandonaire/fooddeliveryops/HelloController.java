@@ -5,16 +5,16 @@ import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+//prueba
 @RestController
 public class HelloController {
 
     @GetMapping("/")
     public Map<String, Object> root() {
         return Map.of(
-            "status", "success",
-            "message", "FoodDeliveryOps API running on Azure Container Apps",
-            "timestamp", Instant.now().toString()
-        );
+                "status", "success",
+                "message", "FoodDeliveryOps API running on Azure Container Apps",
+                "timestamp", Instant.now().toString());
     }
 
     @GetMapping("/hello")
@@ -25,9 +25,8 @@ public class HelloController {
     @GetMapping("/health")
     public Map<String, Object> health() {
         return Map.of(
-            "status", "healthy",
-            "timestamp", Instant.now().toString(),
-            "service", "FoodDeliveryOps-api"
-        );
+                "status", "healthy",
+                "timestamp", Instant.now().toString(),
+                "service", "FoodDeliveryOps-api");
     }
 }
