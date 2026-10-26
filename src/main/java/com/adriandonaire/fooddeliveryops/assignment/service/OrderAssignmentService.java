@@ -118,7 +118,20 @@ public class OrderAssignmentService {
         }
 
         Candidate closest = sortedCandidates.get(0);
-        double calculatedEarnings = Math.max(1800.0, Math.round((1500.0 + closest.distanceKm() * 120.0) * 100.0) / 100.0);
+
+        // Distancia recorrida exclusivamente desde el local hasta el cliente
+        double deliveryDistanceKm = 0.0;
+        if (order.getCustomerLat() != null && order.getCustomerLng() != null) {
+            deliveryDistanceKm = HaversineDistanceCalculator.calculateDistanceKm(
+                    pickupLat,
+                    pickupLng,
+                    order.getCustomerLat(),
+                    order.getCustomerLng()
+            );
+        }
+
+        // Se pagan $600 por km recorrido del local al cliente, con un mínimo garantizado de $3.000
+        double calculatedEarnings = Math.max(3000.0, Math.round(deliveryDistanceKm * 600.0 * 100.0) / 100.0);
         Instant expiresAt = Instant.now().plus(Duration.ofMinutes(offerExpirationMinutes));
 
         OrderAssignment assignment = new OrderAssignment(
@@ -148,7 +161,11 @@ public class OrderAssignmentService {
 
         if (activeOrderOpt.isPresent()) {
             Order active = activeOrderOpt.get();
-            double earnings = 1800.0;
+            double earnings = orderAssignmentRepository.findByOrderIdAndRiderIdAndStatus(
+                    active.getId(),
+                    rider.getId(),
+                    AssignmentStatus.ACCEPTED
+            ).map(OrderAssignment::getDeliveryEarnings).orElse(3000.0);
             return DeliveryAssignmentResponse.fromActiveOrder(active, earnings);
         }
 

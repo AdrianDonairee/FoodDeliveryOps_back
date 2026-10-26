@@ -1,5 +1,7 @@
 package com.adriandonaire.fooddeliveryops.rider.service;
 
+import com.adriandonaire.fooddeliveryops.assignment.AssignmentStatus;
+import com.adriandonaire.fooddeliveryops.assignment.OrderAssignment;
 import com.adriandonaire.fooddeliveryops.assignment.dto.DeliveryAssignmentResponse;
 import com.adriandonaire.fooddeliveryops.assignment.repository.OrderAssignmentRepository;
 import com.adriandonaire.fooddeliveryops.auth.AppUser;
@@ -195,7 +197,12 @@ public class RiderService {
         OrderResponse orderResponse = null;
 
         if (activeOrder != null) {
-            activeDeliveryDto = DeliveryAssignmentResponse.fromActiveOrder(activeOrder, 1800.0);
+            Double orderEarnings = orderAssignmentRepository.findByOrderIdAndRiderIdAndStatus(
+                    activeOrder.getId(),
+                    rider.getId(),
+                    AssignmentStatus.ACCEPTED
+            ).map(OrderAssignment::getDeliveryEarnings).orElse(3000.0);
+            activeDeliveryDto = DeliveryAssignmentResponse.fromActiveOrder(activeOrder, orderEarnings);
             orderId = activeOrder.getId();
             orderStatus = activeOrder.getStatus();
             orderResponse = OrderResponse.fromEntity(activeOrder);
