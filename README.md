@@ -1,5 +1,5 @@
 # FoodDeliveryOps Backend
-
+//prueba
 FoodDeliveryOps Backend is the central API and logistics engine for the **FoodDeliveryOps** platform. Built with **Spring Boot 4** (Java 17) and **PostgreSQL 16**, it manages role-based access, food shop order dispatching, background rider GPS tracking, real-time proximity-based rider assignment, and full order lifecycle tracking.
 
 The project includes a complete authentication slice backed by PostgreSQL, JWT access tokens, refresh tokens, an admin-only account management API, an automated rider assignment engine, and background location ingest services.
