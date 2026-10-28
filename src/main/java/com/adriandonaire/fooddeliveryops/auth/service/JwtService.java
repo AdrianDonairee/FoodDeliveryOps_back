@@ -4,7 +4,6 @@ import com.adriandonaire.fooddeliveryops.auth.AppUser;
 import com.adriandonaire.fooddeliveryops.auth.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -36,17 +35,12 @@ public class JwtService {
                 .claims(Map.of("role", user.getRole().toValue()))
                 .issuedAt(now.date())
                 .expiration(Date.from(now.instant().plus(accessTokenDuration)))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .signWith(signingKey)
                 .compact();
     }
 
     public String extractUsername(String token) {
         return parseClaims(token).getSubject();
-    }
-
-    public UserRole extractRole(String token) {
-        String role = parseClaims(token).get("role", String.class);
-        return UserRole.fromValue(role);
     }
 
     public boolean isTokenValid(String token) {

@@ -18,8 +18,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id AND o.foodShop.id = :foodShopId")
     Optional<Order> findByIdAndFoodShopIdWithItems(@Param("id") Long id, @Param("foodShopId") Long foodShopId);
 
-    List<Order> findByStatus(OrderStatus status);
-
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.assignedRider.id = :riderId AND o.status IN :statuses")
     Optional<Order> findActiveOrderByRiderId(
             @Param("riderId") Long riderId,

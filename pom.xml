@@ -11,21 +11,8 @@
 	<groupId>com.adriandonaire</groupId>
 	<artifactId>FoodDeliveryOps-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<name>FoodDeliveryOps-api</name>
+	<description>FoodDeliveryOps Backend API</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
@@ -75,7 +62,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

@@ -92,14 +92,18 @@ public class OrderAssignmentService {
 
         record Candidate(RiderStatus riderStatus, double distanceKm) {}
 
+        AppUser foodShop = order.getFoodShop();
+        double originLat = (foodShop != null && foodShop.getLatitude() != null) ? foodShop.getLatitude() : defaultShopLat;
+        double originLng = (foodShop != null && foodShop.getLongitude() != null) ? foodShop.getLongitude() : defaultShopLng;
+
         List<Candidate> sortedCandidates = eligibleRiders.stream()
                 .filter(rs -> rs.getCurrentLat() != null && rs.getCurrentLng() != null)
                 .filter(rs -> rs.getLastLocationUpdatedAt() == null || rs.getLastLocationUpdatedAt().isAfter(gpsCutoff))
                 .filter(rs -> !excludedRiders.contains(rs.getRider().getId()))
                 .map(rs -> {
                     double dist = HaversineDistanceCalculator.calculateDistanceKm(
-                            defaultShopLat,
-                            defaultShopLng,
+                            originLat,
+                            originLng,
                             rs.getCurrentLat(),
                             rs.getCurrentLng()
                     );
