@@ -1,7 +1,6 @@
 package com.adriandonaire.fooddeliveryops.auth.service;
 
 import com.adriandonaire.fooddeliveryops.auth.AppUser;
-import com.adriandonaire.fooddeliveryops.auth.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
